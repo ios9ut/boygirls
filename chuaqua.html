@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PK Boy vs Girl ⚡</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; }
+  #game { position: relative; width: 100vw; height: 100vh; background: url('backgroud.jpg') center/cover no-repeat; overflow: hidden; }
+
+  .aura { position: absolute; top: 0; bottom: 0; width: 50%; pointer-events: none; opacity: 0; transition: opacity 0.25s ease; z-index: 1; }
+  #auraBoy { left: 0; background: radial-gradient(circle at 30% 50%, rgba(0,120,255,0.55), rgba(0,60,180,0.15) 60%, transparent 85%); }
+  #auraGirl { right: 0; background: radial-gradient(circle at 70% 50%, rgba(255,60,150,0.55), rgba(200,20,120,0.15) 60%, transparent 85%); }
+  .aura.on { opacity: 1; }
+
+  #scoreboard { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 24px; z-index: 10; align-items: center; }
+  .win-box { display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 14px; font-weight: 700; font-size: 18px; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.35); backdrop-filter: blur(4px); }
+  .win-box.boy { background: linear-gradient(135deg, #1e6bff, #0a3fb0); }
+  .win-box.girl { background: linear-gradient(135deg, #ff4f9a, #c0156b); }
+  .win-box .num { font-size: 24px; }
+
+  #hint { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 13px; opacity: 0.75; z-index: 10; text-shadow: 0 1px 4px rgba(0,0,0,0.8); pointer-events: none; text-align: center; width: 90%; }
+
+  .side { position: absolute; top: 0; bottom: 0; width: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; will-change: width; }
+  #sideBoy { left: 0; }
+  #sideGirl { right: 0; }
+
+  .char-zone { position: relative; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .char-wrap { display: flex; align-items: center; justify-content: center; pointer-events: none; will-change: transform; }
+  @keyframes idleWobbleBoy { 0% { transform: translate(0,0) rotate(0deg);} 25% { transform: translate(2px,-2px) rotate(-0.6deg);} 50% { transform: translate(-1px,1px) rotate(0.4deg);} 75% { transform: translate(1.5px,-1px) rotate(-0.3deg);} 100% { transform: translate(0,0) rotate(0deg);} }
+  @keyframes idleWobbleGirl { 0% { transform: translate(0,0) rotate(0deg);} 25% { transform: translate(-2px,-1.5px) rotate(0.6deg);} 50% { transform: translate(1px,1.5px) rotate(-0.4deg);} 75% { transform: translate(-1.5px,-1px) rotate(0.3deg);} 100% { transform: translate(0,0) rotate(0deg);} }
+  @keyframes idleWobbleSword { 0% { transform: translate(-50%,-50%) translate(0,0) rotate(0deg);} 25% { transform: translate(-50%,-50%) translate(1.5px,-2px) rotate(1deg);} 50% { transform: translate(-50%,-50%) translate(-1.5px,1.5px) rotate(-1deg);} 75% { transform: translate(-50%,-50%) translate(1px,-1px) rotate(0.6deg);} 100% { transform: translate(-50%,-50%) translate(0,0) rotate(0deg);} }
+  .char-wrap.idle-boy { animation: idleWobbleBoy 1.6s ease-in-out infinite; }
+  .char-wrap.idle-girl { animation: idleWobbleGirl 1.9s ease-in-out infinite; }
+
+  .char { width: 46%; max-width: 320px; aspect-ratio: 3/4; background-size: contain; background-repeat: no-repeat; background-position: center bottom; filter: drop-shadow(0 10px 22px rgba(0,0,0,0.5)); pointer-events: none; display: flex; align-items: center; justify-content: center; }
+  #charBoy { background-image: url('boy.png'); }
+  #charGirl { background-image: url('girl.png'); }
+  .char.fallback { background-image: none !important; font-size: 140px; line-height: 1; text-shadow: 0 10px 22px rgba(0,0,0,0.5); }
+
+  @keyframes shakeHit { 0% { transform: translate(0,0) rotate(0deg);} 15% { transform: translate(-9px,4px) rotate(-4deg);} 30% { transform: translate(8px,-5px) rotate(4deg);} 45% { transform: translate(-7px,3px) rotate(-3deg);} 60% { transform: translate(6px,-3px) rotate(2.5deg);} 75% { transform: translate(-4px,2px) rotate(-1.5deg);} 100% { transform: translate(0,0) rotate(0deg);} }
+  .char.shake { animation: shakeHit 0.34s ease-in-out; }
+
+  .float-bonus { position: absolute; top: 8%; left: 50%; transform: translateX(-50%); font-size: 38px; font-weight: 900; pointer-events: none; white-space: nowrap; z-index: 25; opacity: 0; text-shadow: 0 2px 6px rgba(0,0,0,0.85), 0 0 16px currentColor; will-change: opacity, transform; }
+  .float-bonus.boy { color: #4fa3ff; }
+  .float-bonus.girl { color: #ff77b5; }
+  .float-bonus.show { animation: bonusPop 2s ease-out forwards; }
+  @keyframes bonusPop { 0% { opacity:0; transform: translateX(-50%) translateY(10px) scale(0.6);} 15% { opacity:1; transform: translateX(-50%) translateY(-6px) scale(1.15);} 30% { opacity:1; transform: translateX(-50%) translateY(-10px) scale(1);} 70% { opacity:1; transform: translateX(-50%) translateY(-16px) scale(1);} 100% { opacity:0; transform: translateX(-50%) translateY(-32px) scale(0.95);} }
+
+  #swordDivider { position: absolute; top: 50%; left: 50%; z-index: 15; font-size: 64px; pointer-events: none; filter: drop-shadow(0 0 14px rgba(255,255,255,0.85)) drop-shadow(0 0 26px rgba(255,220,80,0.7)); line-height: 1; will-change: left, transform; transform: translate(-50%,-50%); animation: idleWobbleSword 1.4s ease-in-out infinite; }
+
+  .bolt { position: absolute; font-size: 64px; z-index: 30; pointer-events: none; will-change: transform, opacity; filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffe600); }
+
+  .hit-flash { position: absolute; inset: 0; z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.12s ease; }
+  #hitFlashBoy { background: radial-gradient(circle at 50% 60%, rgba(120,180,255,0.7), transparent 65%); }
+  #hitFlashGirl { background: radial-gradient(circle at 50% 60%, rgba(255,120,190,0.7), transparent 65%); }
+  .hit-flash.on { opacity: 1; }
+
+  #tugbar { position: absolute; bottom: 86px; left: 50%; transform: translateX(-50%); width: 60%; max-width: 640px; height: 22px; border-radius: 12px; background: rgba(0,0,0,0.45); overflow: hidden; z-index: 10; box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
+  #tugFillBoy { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #1e6bff, #4fa3ff); transition: width 0.18s ease-out; }
+  #tugFillGirl { position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #ff77b5, #ff2e86); transition: width 0.18s ease-out; }
+  #tugCenterMark { position: absolute; top: -4px; bottom: -4px; left: 50%; width: 3px; background: #fff; transform: translateX(-50%); z-index: 11; border-radius: 2px; box-shadow: 0 0 8px #fff, 0 0 14px #ffe600; transition: left 0.18s ease-out; }
+
+  .skill-bar { position: absolute; bottom: 20px; display: flex; gap: 14px; z-index: 12; }
+  #skillBarBoy { left: 4%; }
+  #skillBarGirl { right: 4%; }
+
+  .skill-btn { position: relative; width: 70px; height: 70px; border-radius: 16px; border: 2px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.45); backdrop-filter: blur(6px); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.4); overflow: hidden; }
+  .skill-btn:hover { transform: translateY(-3px); }
+  .skill-btn:active { transform: scale(0.94); }
+  .skill-btn .skill-emoji { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+  .skill-btn .skill-count { font-size: 12px; font-weight: 700; color: #fff; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+  .skill-btn.boy { border-color: rgba(80,160,255,0.7); }
+  .skill-btn.girl { border-color: rgba(255,100,170,0.7); }
+
+  .skill-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background: rgba(255,255,255,0.2); transition: height 0.1s linear; pointer-events: none; z-index: 0; }
+  .skill-btn.boy .skill-progress { background: linear-gradient(0deg, rgba(30,107,255,0.5), rgba(79,163,255,0.25)); }
+  .skill-btn.girl .skill-progress { background: linear-gradient(0deg, rgba(255,79,154,0.5), rgba(255,119,181,0.25)); }
+  .skill-btn > *:not(.skill-progress) { position: relative; z-index: 1; }
+  .skill-btn.casting { border-color: #ffe600; box-shadow: 0 0 16px #ffe600, 0 0 26px rgba(255,230,0,0.5); }
+
+  .skill-queue { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #ffe600; color: #000; font-size: 11px; font-weight: 900; display: none; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+  .skill-queue.show { display: flex; }
+
+  /* ====== BẢNG NOTE QUÀ TẶNG ====== */
+  .gift-note {
+    position: absolute;
+    z-index: 14;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    font-size: 12px;
+    color: #fff;
+    pointer-events: none;
+    min-width: 100px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+  }
+  #giftBoy {
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-color: rgba(80,160,255,0.55);
+  }
+  #giftGirl {
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-color: rgba(255,100,170,0.55);
+  }
+  .gift-note .gift-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-align: center;
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+  }
+  #giftBoy .gift-title { color: #7cb8ff; }
+  #giftGirl .gift-title { color: #ff9cc4; }
+  .gift-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .gift-row .gift-label { opacity: 0.9; font-weight: 500; }
+  .gift-row .gift-val { font-weight: 800; }
+  #giftBoy .gift-val { color: #7cb8ff; }
+  #giftGirl .gift-val { color: #ff9cc4; }
+
+  #winBanner { position: absolute; top: 42%; left: 50%; transform: translate(-50%,-50%) scale(0.6); z-index: 50; padding: 18px 48px; border-radius: 18px; font-size: 40px; font-weight: 900; color: #fff; text-shadow: 0 3px 10px rgba(0,0,0,0.6); opacity: 0; pointer-events: none; transition: all 0.35s cubic-bezier(.2,.9,.3,1.3); white-space: nowrap; }
+  #winBanner.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+  /* ============================================================
+     RESPONSIVE — TABLET & MOBILE (dọc)
+     ============================================================ */
+  @media (max-width: 900px) {
+    .skill-btn { width: 60px; height: 60px; border-radius: 14px; }
+    .skill-btn .skill-emoji { font-size: 26px; }
+    .skill-btn .skill-count { font-size: 11px; }
+    #tugbar { width: 70%; }
+    #swordDivider { font-size: 54px; }
+    .gift-note { font-size: 11px; padding: 8px 10px; min-width: 88px; }
+    .gift-note .gift-title { font-size: 10px; }
+  }
+
+  @media (max-width: 700px) {
+    #scoreboard { gap: 12px; }
+    .win-box { padding: 6px 12px; font-size: 14px; }
+    .win-box .num { font-size: 18px; }
+    #hint { font-size: 10px; top: 58px; }
+
+    .char { width: 60%; }
+    #swordDivider { font-size: 44px; }
+
+    #tugbar { bottom: 132px; width: 88%; height: 18px; }
+
+    .skill-bar { gap: 8px; bottom: 16px; }
+    #skillBarBoy { left: 3%; }
+    #skillBarGirl { right: 3%; }
+    .skill-btn { width: 54px; height: 54px; border-radius: 12px; }
+    .skill-btn .skill-emoji { font-size: 22px; }
+    .skill-btn .skill-count { font-size: 10px; }
+    .float-bonus { font-size: 28px; }
+
+    .gift-note { font-size: 10px; padding: 6px 8px; min-width: 78px; gap: 3px; }
+    .gift-note .gift-title { font-size: 9px; }
+    #giftBoy { left: 6px; }
+    #giftGirl { right: 6px; }
+  }
+
+  @media (max-width: 480px) {
+    .gift-note { display: none; } /* Ẩn note quà trên mobile nhỏ để đỡ chật */
+    #tugbar { bottom: 120px; }
+  }
+
+  /* ============================================================
+     RESPONSIVE — LANDSCAPE (NGANG)
+     ============================================================ */
+  @media (orientation: landscape) and (max-height: 600px) {
+    #scoreboard { top: 6px; gap: 14px; }
+    .win-box { padding: 5px 12px; font-size: 13px; gap: 5px; }
+    .win-box .num { font-size: 17px; }
+    #hint { display: none; } /* ẩn hint ở landscape thấp cho gọn */
+
+    .char { width: 40%; max-width: 260px; }
+    #swordDivider { font-size: 48px; }
+
+    #tugbar { bottom: 10px; width: 44%; max-width: 460px; height: 16px; }
+
+    .skill-bar { bottom: 10px; gap: 8px; }
+    #skillBarBoy { left: 2%; }
+    #skillBarGirl { right: 2%; }
+    .skill-btn { width: 50px; height: 50px; border-radius: 11px; }
+    .skill-btn .skill-emoji { font-size: 20px; }
+    .skill-btn .skill-count { font-size: 9px; margin-top: 0; }
+    .float-bonus { font-size: 26px; top: 4%; }
+
+    .gift-note { font-size: 10px; padding: 6px 8px; min-width: 76px; gap: 2px; top: 50%; }
+    .gift-note .gift-title { font-size: 9px; padding-bottom: 2px; margin-bottom: 1px; }
+    .gift-row { gap: 6px; }
+    #giftBoy { left: 6px; }
+    #giftGirl { right: 6px; }
+
+    #winBanner { font-size: 28px; padding: 12px 32px; }
+  }
+
+  @media (orientation: landscape) and (max-height: 450px) {
+    #tugbar { width: 40%; height: 14px; bottom: 8px; }
+    .skill-btn { width: 44px; height: 44px; }
+    .skill-btn .skill-emoji { font-size: 18px; }
+    .skill-btn .skill-count { display: none; }
+    .gift-note { font-size: 9px; padding: 5px 7px; min-width: 68px; }
+    .char { width: 34%; }
+    #swordDivider { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="auraBoy" class="aura"></div>
+  <div id="auraGirl" class="aura"></div>
+
+  <div id="scoreboard">
+    <div class="win-box boy">👦 BOY <span class="num" id="winBoy">0</span> 🏆</div>
+    <div class="win-box girl">👧 GIRL <span class="num" id="winGirl">0</span> 🏆</div>
+  </div>
+  <div id="hint">Follow me to ⚡</div>
+
+  <div class="side" id="sideBoy">
+    <div class="char-zone">
+      <div class="float-bonus boy" id="bonusBoy"></div>
+      <div class="char-wrap idle-boy" id="wrapBoy"><div class="char" id="charBoy"></div></div>
+    </div>
+  </div>
+  <div class="side" id="sideGirl">
+    <div class="char-zone">
+      <div class="float-bonus girl" id="bonusGirl"></div>
+      <div class="char-wrap idle-girl" id="wrapGirl"><div class="char" id="charGirl"></div></div>
+    </div>
+  </div>
+
+  <!-- Bảng note quà tặng -->
+  <div class="gift-note" id="giftBoy">
+    <div class="gift-title">🎁 Boy</div>
+    <div class="gift-row"><span class="gift-label">Comment B</span><span class="gift-val">+1</span></div>
+    <div class="gift-row"><span class="gift-label">Follow</span><span class="gift-val">+6</span></div>
+    <div class="gift-row"><span class="gift-label">TikTok</span><span class="gift-val">+10</span></div>
+  </div>
+  <div class="gift-note" id="giftGirl">
+    <div class="gift-title">🎁 Girl</div>
+    <div class="gift-row"><span class="gift-label">Comment G</span><span class="gift-val">+1</span></div>
+    <div class="gift-row"><span class="gift-label">Rose</span><span class="gift-val">+3</span></div>
+    <div class="gift-row"><span class="gift-label">OK</span><span class="gift-val">+10</span></div>
+    <div class="gift-row"><span class="gift-label">Rosa</span><span class="gift-val">+20</span></div>
+  </div>
+
+  <div id="swordDivider">⚔️</div>
+
+  <div class="hit-flash" id="hitFlashBoy"></div>
+  <div class="hit-flash" id="hitFlashGirl"></div>
+
+  <div id="tugbar">
+    <div id="tugFillBoy"></div>
+    <div id="tugFillGirl"></div>
+    <div id="tugCenterMark"></div>
+  </div>
+
+  <div class="skill-bar" id="skillBarBoy">
+    <div class="skill-btn boy" data-side="boy" data-count="6">
+      <div class="skill-progress"></div><div class="skill-queue"></div>
+      <span class="skill-emoji">🔥</span><span class="skill-count">x6</span>
+    </div>
+    <div class="skill-btn boy" data-side="boy" data-count="10">
+      <div class="skill-progress"></div><div class="skill-queue"></div>
+      <span class="skill-emoji">⚡</span><span class="skill-count">x10</span>
+    </div>
+    <div class="skill-btn boy" data-side="boy" data-count="20">
+      <div class="skill-progress"></div><div class="skill-queue"></div>
+      <span class="skill-emoji">❄️</span><span class="skill-count">x20</span>
+    </div>
+  </div>
+
+  <div class="skill-bar" id="skillBarGirl">
+    <div class="skill-btn girl" data-side="girl" data-count="3">
+      <div class="skill-progress"></div><div class="skill-queue"></div>
+      <span class="skill-emoji">💨</span><span class="skill-count">x3</span>
+    </div>
+    <div class="skill-btn girl" data-side="girl" data-count="10">
+      <div class="skill-progress"></div><div class="skill-queue"></div>
+      <span class="skill-emoji">⚡</span><span class="skill-count">x10</span>
+    </div>
+    <div class="skill-btn girl" data-side="girl" data-count="20">
+      <div class="skill-progress"></div><div class="skill-queue"></div>
+      <span class="skill-emoji">❄️</span><span class="skill-count">x20</span>
+    </div>
+  </div>
+
+  <div id="winBanner"></div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  const POINTS_PER_HIT = 5;
+  const MAX_PUSH = 100;
+  const SKILL_BOLT_INTERVAL = 110;
+
+  let tug = 0;
+  let winBoy = 0, winGirl = 0;
+  let isResetting = false;
+
+  const el = {
+    sideBoy: document.getElementById('sideBoy'),
+    sideGirl: document.getElementById('sideGirl'),
+    charBoy: document.getElementById('charBoy'),
+    charGirl: document.getElementById('charGirl'),
+    wrapBoy: document.getElementById('wrapBoy'),
+    wrapGirl: document.getElementById('wrapGirl'),
+    bonusBoy: document.getElementById('bonusBoy'),
+    bonusGirl: document.getElementById('bonusGirl'),
+    auraBoy: document.getElementById('auraBoy'),
+    auraGirl: document.getElementById('auraGirl'),
+    tugFillBoy: document.getElementById('tugFillBoy'),
+    tugFillGirl: document.getElementById('tugFillGirl'),
+    tugCenterMark: document.getElementById('tugCenterMark'),
+    winBoy: document.getElementById('winBoy'),
+    winGirl: document.getElementById('winGirl'),
+    hitFlashBoy: document.getElementById('hitFlashBoy'),
+    hitFlashGirl: document.getElementById('hitFlashGirl'),
+    winBanner: document.getElementById('winBanner'),
+    game: document.getElementById('game'),
+    swordDivider: document.getElementById('swordDivider'),
+    skillBarBoy: document.getElementById('skillBarBoy'),
+    skillBarGirl: document.getElementById('skillBarGirl')
+  };
+
+  function setupCharWithFallback(charEl, imgSrc, emoji) {
+    const img = new Image();
+    img.onload = () => { charEl.style.backgroundImage = `url('${imgSrc}')`; };
+    img.onerror = () => { charEl.classList.add('fallback'); charEl.textContent = emoji; };
+    img.src = imgSrc;
+  }
+  setupCharWithFallback(el.charBoy, 'boy.png', '👦');
+  setupCharWithFallback(el.charGirl, 'girl.png', '👧');
+
+  // ====== ÂM THANH ======
+  let audioCtx = null;
+  function getCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function playThunder() {
+    const ctx = getCtx(), now = ctx.currentTime, dur = 0.35;
+    const bufferSize = ctx.sampleRate * dur;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random()*2-1) * Math.pow(1 - i/bufferSize, 1.6);
+    const noise = ctx.createBufferSource(); noise.buffer = buffer;
+    const nf = ctx.createBiquadFilter(); nf.type = 'bandpass';
+    nf.frequency.setValueAtTime(1800, now); nf.frequency.exponentialRampToValueAtTime(180, now+dur); nf.Q.value = 1.2;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.9, now); ng.gain.exponentialRampToValueAtTime(0.001, now+dur);
+    noise.connect(nf).connect(ng).connect(ctx.destination); noise.start(now); noise.stop(now+dur);
+    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(50, now+0.22);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0.5, now); og.gain.exponentialRampToValueAtTime(0.001, now+0.22);
+    osc.connect(og).connect(ctx.destination); osc.start(now); osc.stop(now+0.23);
+  }
+  function playClick() {
+    const ctx = getCtx(), now = ctx.currentTime;
+    const osc = ctx.createOscillator(); osc.type = 'triangle';
+    osc.frequency.setValueAtTime(900, now); osc.frequency.exponentialRampToValueAtTime(400, now+0.06);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.001, now+0.07);
+    osc.connect(g).connect(ctx.destination); osc.start(now); osc.stop(now+0.08);
+  }
+  function playWin() {
+    const ctx = getCtx(), now = ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      const t = now + i*0.11;
+      const osc = ctx.createOscillator(); osc.type = 'square'; osc.frequency.setValueAtTime(f, t);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t+0.02); g.gain.exponentialRampToValueAtTime(0.001, t+0.35);
+      osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t+0.4);
+    });
+  }
+  function playSkillCast() {
+    const ctx = getCtx(), now = ctx.currentTime;
+    [392, 523.25, 659.25].forEach((f, i) => {
+      const t = now + i*0.05;
+      const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(f, t); osc.frequency.exponentialRampToValueAtTime(f*1.5, t+0.25);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.22, t+0.03); g.gain.exponentialRampToValueAtTime(0.001, t+0.4);
+      osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t+0.45);
+    });
+  }
+
+  // ====== VISUAL ======
+  function updateTugVisual() {
+    const p = (tug + 100) / 2;
+    el.tugFillBoy.style.width = p + '%';
+    el.tugFillGirl.style.width = (100 - p) + '%';
+    el.tugCenterMark.style.left = p + '%';
+    el.sideBoy.style.width = p + '%';
+    el.sideGirl.style.width = (100 - p) + '%';
+    el.swordDivider.style.left = p + '%';
+    const shift = (tug / 100) * 14;
+    el.wrapBoy.style.marginLeft = shift + '%';
+    el.wrapGirl.style.marginLeft = shift + '%';
+  }
+  function updateScoreboard() {
+    el.winBoy.textContent = winBoy;
+    el.winGirl.textContent = winGirl;
+  }
+  function flashAura(side) {
+    const a = side === 'boy' ? el.auraBoy : el.auraGirl;
+    a.classList.add('on'); clearTimeout(a._t); a._t = setTimeout(() => a.classList.remove('on'), 350);
+  }
+  function flashHit(side) {
+    const f = side === 'boy' ? el.hitFlashBoy : el.hitFlashGirl;
+    f.classList.add('on'); clearTimeout(f._t); f._t = setTimeout(() => f.classList.remove('on'), 140);
+  }
+  function shakeChar(side) {
+    const c = side === 'boy' ? el.charBoy : el.charGirl;
+    c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    clearTimeout(c._shakeT); c._shakeT = setTimeout(() => c.classList.remove('shake'), 360);
+  }
+  function showBonus(side, amount) {
+    const b = side === 'boy' ? el.bonusBoy : el.bonusGirl;
+    let cur = parseInt(b.dataset.value || '0', 10);
+    cur += amount;
+    b.dataset.value = cur;
+    b.textContent = '+' + cur;
+    b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+    clearTimeout(b._resetT);
+    b._resetT = setTimeout(() => { b.dataset.value = '0'; b.classList.remove('show'); }, 2000);
+  }
+
+  function spawnBolt(targetSide) {
+    const gr = el.game.getBoundingClientRect();
+    const isGirl = targetSide === 'girl';
+    const targetEl = isGirl ? el.charGirl : el.charBoy;
+    const tr = targetEl.getBoundingClientRect();
+    const destX = tr.left + tr.width/2 - gr.left;
+    const destY = tr.top + tr.height/2 - gr.top;
+    const startX = isGirl ? -80 : gr.width + 80;
+    const startY = destY - 120 + Math.random()*60;
+
+    const bolt = document.createElement('div');
+    bolt.className = 'bolt'; bolt.textContent = '⚡';
+    bolt.style.left = '0px'; bolt.style.top = '0px';
+    el.game.appendChild(bolt);
+
+    const rotStart = isGirl ? 35 : -35, rotEnd = isGirl ? -20 : 20;
+    const anim = bolt.animate([
+      { transform: `translate(${startX}px,${startY}px) rotate(${rotStart}deg) scale(0.6)`, opacity: 0 },
+      { transform: `translate(${(startX+destX)/2}px,${(startY+destY)/2-60}px) rotate(0deg) scale(1.3)`, opacity: 1, offset: 0.5 },
+      { transform: `translate(${destX}px,${destY}px) rotate(${rotEnd}deg) scale(1.8)`, opacity: 1 }
+    ], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
+    anim.onfinish = () => {
+      bolt.animate([
+        { transform: `translate(${destX}px,${destY}px) scale(1.8)`, opacity: 1 },
+        { transform: `translate(${destX}px,${destY}px) scale(3)`, opacity: 0 }
+      ], { duration: 160, easing: 'ease-out', fill: 'forwards' }).onfinish = () => bolt.remove();
+    };
+  }
+
+  // ====== LOGIC ======
+  function throwOneBolt(attacker) {
+    const targetSide = attacker === 'boy' ? 'girl' : 'boy';
+    spawnBolt(targetSide);
+    flashAura(attacker);
+    setTimeout(() => flashHit(targetSide), 220);
+    setTimeout(() => shakeChar(targetSide), 220);
+
+    if (attacker === 'boy') tug += POINTS_PER_HIT;
+    else tug -= POINTS_PER_HIT;
+
+    if (tug > MAX_PUSH) tug = MAX_PUSH;
+    if (tug < -MAX_PUSH) tug = -MAX_PUSH;
+
+    updateTugVisual();
+
+    if (tug >= MAX_PUSH) {
+      winBoy++; updateScoreboard(); playWin();
+      showWinBanner('👦 BOY WIN! +1 🏆', 'boy');
+      return true;
+    } else if (tug <= -MAX_PUSH) {
+      winGirl++; updateScoreboard(); playWin();
+      showWinBanner('👧 GIRL WIN! +1 🏆', 'girl');
+      return true;
+    }
+    return false;
+  }
+
+  function hit(attacker) {
+    if (isResetting) return;
+    playClick(); playThunder();
+    throwOneBolt(attacker);
+  }
+
+  function showWinBanner(text, side) {
+    isResetting = true;
+    el.winBanner.textContent = text;
+    el.winBanner.style.background = side === 'boy'
+      ? 'linear-gradient(135deg,#1e6bff,#0a3fb0)'
+      : 'linear-gradient(135deg,#ff4f9a,#c0156b)';
+    el.winBanner.classList.add('show');
+
+    document.querySelectorAll('.skill-btn').forEach(btn => {
+      if (btn._timer) { clearTimeout(btn._timer); btn._timer = null; }
+    });
+
+    setTimeout(() => {
+      el.winBanner.classList.remove('show');
+      tug = 0;
+      updateTugVisual();
+      isResetting = false;
+
+      document.querySelectorAll('.skill-btn').forEach(btn => {
+        if (!btn._casting) return;
+        if (btn._remain > 0 || btn._queue > 0) {
+          runLoop(btn);
+        } else {
+          endCast(btn);
+        }
+      });
+    }, 1400);
+  }
+
+  // ====== SKILL ======
+  function initSkillButtons() {
+    document.querySelectorAll('.skill-btn').forEach(btn => {
+      btn._target = parseInt(btn.dataset.count, 10);
+      btn._side = btn.dataset.side;
+      btn._queue = 0;
+      btn._remain = 0;
+      btn._done = 0;
+      btn._casting = false;
+      btn._timer = null;
+      btn._progressEl = btn.querySelector('.skill-progress');
+      btn._countEl = btn.querySelector('.skill-count');
+      btn._queueEl = btn.querySelector('.skill-queue');
+
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        handleSkillClick(btn);
+      });
+    });
+  }
+
+  function updateQueueBadge(btn) {
+    const totalRemain = (btn._casting ? Math.max(0, btn._remain) : 0) + btn._queue * btn._target;
+    if (totalRemain > 0) {
+      btn._queueEl.textContent = 'x' + Math.ceil(totalRemain / btn._target);
+      btn._queueEl.classList.add('show');
+    } else {
+      btn._queueEl.classList.remove('show');
+    }
+  }
+
+  function updateCastingProgress(btn, done, total) {
+    const pct = (done / total) * 100;
+    btn._progressEl.style.height = pct + '%';
+    btn._countEl.textContent = `${done}/${total}`;
+  }
+
+  function handleSkillClick(btn) {
+    showBonus(btn._side, btn._target);
+
+    if (isResetting) {
+      btn._queue++;
+      updateQueueBadge(btn);
+      playClick();
+      return;
+    }
+
+    if (btn._casting) {
+      btn._queue++;
+      updateQueueBadge(btn);
+      playClick();
+      return;
+    }
+
+    btn._casting = true;
+    btn._remain = btn._target;
+    btn._done = 0;
+    btn.classList.add('casting');
+    playSkillCast();
+    updateCastingProgress(btn, 0, btn._target);
+    updateQueueBadge(btn);
+    runLoop(btn);
+  }
+
+  function runLoop(btn) {
+    if (btn._timer) return;
+
+    function fireOne() {
+      btn._timer = null;
+
+      if (isResetting) return;
+
+      if (btn._remain <= 0) {
+        if (btn._queue > 0) {
+          btn._queue--;
+          btn._remain = btn._target;
+          btn._done = 0;
+          updateCastingProgress(btn, 0, btn._target);
+          updateQueueBadge(btn);
+          playSkillCast();
+          btn._timer = setTimeout(fireOne, 80);
+          return;
+        }
+        endCast(btn);
+        return;
+      }
+
+      btn._remain--;
+      btn._done++;
+      updateCastingProgress(btn, btn._done, btn._target);
+      updateQueueBadge(btn);
+
+      playThunder();
+      const won = throwOneBolt(btn._side);
+
+      if (won) return;
+
+      btn._timer = setTimeout(fireOne, SKILL_BOLT_INTERVAL);
+    }
+
+    fireOne();
+  }
+
+  function endCast(btn) {
+    btn._casting = false;
+    btn._remain = 0;
+    btn._done = 0;
+    if (btn._timer) { clearTimeout(btn._timer); btn._timer = null; }
+    btn.classList.remove('casting');
+    updateQueueBadge(btn);
+    setTimeout(() => {
+      btn._progressEl.style.height = '0%';
+      btn._countEl.textContent = `${btn._target} tia`;
+    }, 300);
+  }
+
+  // ====== GẮN SỰ KIỆN ======
+  el.sideBoy.addEventListener('click', () => hit('boy'));
+  el.sideGirl.addEventListener('click', () => hit('girl'));
+  el.skillBarBoy.addEventListener('click', e => e.stopPropagation());
+  el.skillBarGirl.addEventListener('click', e => e.stopPropagation());
+
+  updateTugVisual();
+  updateScoreboard();
+  initSkillButtons();
+
+  document.addEventListener('pointerdown', () => getCtx(), { once: true });
+})();
+</script>
+</body>
+</html>
