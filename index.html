@@ -58,9 +58,9 @@
   .hit-flash.on { opacity: 1; }
 
   #tugbar { position: absolute; bottom: 86px; left: 50%; transform: translateX(-50%); width: 60%; max-width: 640px; height: 22px; border-radius: 12px; background: rgba(0,0,0,0.45); overflow: hidden; z-index: 10; box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
-  #tugFillBoy { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #1e6bff, #4fa3ff); transition: width 0.18s ease-out; }
-  #tugFillGirl { position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #ff77b5, #ff2e86); transition: width 0.18s ease-out; }
-  #tugCenterMark { position: absolute; top: -4px; bottom: -4px; left: 50%; width: 3px; background: #fff; transform: translateX(-50%); z-index: 11; border-radius: 2px; box-shadow: 0 0 8px #fff, 0 0 14px #ffe600; transition: left 0.18s ease-out; }
+  #tugFillBoy { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #1e6bff, #4fa3ff); transition: width 0.18s ease-out; border-radius: 12px 0 0 12px; }
+  #tugFillGirl { position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #ff2e86, #ff77b5); transition: width 0.18s ease-out; border-radius: 0 12px 12px 0; }
+  #tugCenterMark { position: absolute; top: -6px; bottom: -6px; left: 50%; width: 4px; background: #fff; transform: translateX(-50%); z-index: 11; border-radius: 3px; box-shadow: 0 0 8px #fff, 0 0 14px #ffe600, 0 0 22px rgba(255,230,0,0.6); transition: left 0.18s ease-out; }
 
   .skill-bar { position: absolute; bottom: 20px; display: flex; gap: 14px; z-index: 12; }
   #skillBarBoy { left: 4%; }
@@ -345,9 +345,24 @@
   };
 
   function setupCharWithFallback(charEl, imgSrc, emoji) {
+    // Set background ngay từ đầu (CSS cũng đã set, ở đây chắc chắn lại)
+    charEl.style.backgroundImage = `url('${imgSrc}')`;
+    charEl.classList.remove('fallback');
+    charEl.textContent = '';
+
     const img = new Image();
-    img.onload = () => { charEl.style.backgroundImage = `url('${imgSrc}')`; };
-    img.onerror = () => { charEl.classList.add('fallback'); charEl.textContent = emoji; };
+    img.onload = () => {
+      // Ảnh load OK — giữ nguyên background, đảm bảo không còn fallback
+      charEl.classList.remove('fallback');
+      charEl.style.backgroundImage = `url('${imgSrc}')`;
+      charEl.textContent = '';
+    };
+    img.onerror = () => {
+      // Ảnh lỗi thật sự (404) — mới dùng emoji
+      charEl.classList.add('fallback');
+      charEl.style.backgroundImage = 'none';
+      charEl.textContent = emoji;
+    };
     img.src = imgSrc;
   }
   setupCharWithFallback(el.charBoy, 'boy.png', '👦');
@@ -414,6 +429,10 @@
     const shift = (tug / 100) * 14;
     el.wrapBoy.style.marginLeft = shift + '%';
     el.wrapGirl.style.marginLeft = shift + '%';
+
+    // Tone màu 2 bên khớp với ranh giới (mờ dần về phía ranh giới)
+    el.sideBoy.style.background = `linear-gradient(90deg, rgba(30,107,255,0.10), transparent ${p}%)`;
+    el.sideGirl.style.background = `linear-gradient(270deg, rgba(255,79,154,0.10), transparent ${100 - p}%)`;
   }
   function updateScoreboard() {
     el.winBoy.textContent = winBoy;
